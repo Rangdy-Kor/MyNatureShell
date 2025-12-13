@@ -1,5 +1,5 @@
 import sys
-from logic import Parser
+from logic import Parser, Condition
 from constants import ErrorCode, CommandList
 
 
@@ -10,6 +10,16 @@ class Command:
 	def execute(ast, variables) :
 		if ast is None:
 			return
+
+		if ast.get("type") == "condition":
+			result = Condition.evaluate_condition(ast["condition"], variables)
+			if result :
+				block_tokens = ast["block"]
+				clean_block = block_tokens[1:-1]
+				block_ast = Parser.parse(clean_block)
+				Command.execute(block_ast, variables)
+			return
+
 		noun = ast["noun"]
 		verb = ast["verb"]
 
@@ -277,7 +287,6 @@ class Sys :
 class Run:
 	@staticmethod
 	def start():
-		sys.stdout.write("Nautre Shell ver 0.1.4\n")
 		while True :
 			sys.stdout.write("\n>>> ")
 			cmd = sys.stdin.readline().strip()

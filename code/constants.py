@@ -18,4 +18,4 @@ class ErrorCode(Enum):
 class CommandList :
 	noun_list = ("tmp", "temp", "sys", "system", "var", "variable")
 	verb_list = ("chg", "change", "crt", "create", "echo", "stop")
-	prep_list = ("-in")
+	prep_list = ("-in",)
