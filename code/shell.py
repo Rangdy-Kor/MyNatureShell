@@ -5,13 +5,11 @@ from constants import ErrorCode, CommandList
 
 variable = {}
 
-class Command :
+class Command: 
 	@staticmethod
-	def execute(ast, variables):
+	def execute(ast, variables) :
 		if ast is None:
 			return
-		
-		
 		noun = ast["noun"]
 		verb = ast["verb"]
 
@@ -43,7 +41,141 @@ class Command :
 		except Exception as e:
 			sys.stderr.write(f"Runtime Error during execution: {e}\n")
 			return None
+    
+class PreProcessing :
+	@staticmethod
+	def _add_space(string) :
+		string = string.replace("+", " + ")
+		string = string.replace("-", " - ")
+		string = string.replace("*", " * ")
+		string = string.replace("/", " / ")
+  
+		string = " ".join(string.split())
+		return string
 
+	@staticmethod
+	def _evaluate_expression(*values, variables) :
+		evaluated = []
+		for val in values:
+			if val.startswith("$"):
+				var_name = val[1:]
+				if var_name in variables:
+					evaluated.append(variables[var_name])
+				else:
+					ErrorCode.VARIABLE_NOT_FOUND.print_error(var_name)
+					evaluated.append(None)
+			else:
+				evaluated.append(val)
+		expression_string = " ".join(evaluated)
+		return expression_string
+
+	@staticmethod
+	def _calc (expression) :
+		expression_list = expression.split(" ")
+		result = None
+  
+		i = 0
+		try :
+			if expression_list[0] == "-" :
+				if len(expression_list) > 1 :
+					try:
+						float_val = float(expression_list[1]) 
+						
+						expression_list[0] = str(-float_val)
+						del expression_list[1]
+					except ValueError:
+						pass
+			while i < len(expression_list) - 1: 
+				op = expression_list[i]
+				
+				if op == "*" or op == "/":
+					if len(expression_list) > i + 3:
+						if expression_list[i+1] == "-" and expression_list[i+2] == "-" :
+							try :
+								float_val = float(expression_list[i+3]) 
+								
+								expression_list[i+1] = str(float_val)
+								del expression_list[i+2]
+								del expression_list[i+2]
+							except ValueError:
+								pass
+						
+					if len(expression_list) > i + 2 :
+						if expression_list[i+1] == "-" :
+							try:
+								float_val = float(expression_list[i+2]) 
+								
+								expression_list[i+1] = str(-float_val)
+								del expression_list[i+2]
+							except ValueError:
+								pass
+    
+					try :
+			
+						val1 = float(expression_list[i-1])
+						val2 = float(expression_list[i+1])
+						
+						if op == "*":
+							result = val1 * val2
+						else: 
+							if val2 == 0:
+								sys.stderr.write("Error: Division by zero.\n")
+								return None
+							result = val1 / val2
+						
+						del expression_list[i+1]
+						del expression_list[i] 
+						
+						expression_list[i-1] = str(result)
+					except ValueError :
+						i += 1
+						pass
+
+				else:
+					i += 1
+     
+			i = 1
+			while i < len(expression_list) - 1 :
+				op = expression_list[i]
+				
+				if op == "+" or op == "-":
+					try :
+						val1 = float(expression_list[i-1])
+						val2 = float(expression_list[i+1])
+						
+						if op == "+":
+							result = val1 + val2
+						else: 
+							result = val1 - val2
+						
+						del expression_list[i+1]
+						del expression_list[i] 
+						
+						expression_list[i-1] = str(result)
+					except ValueError :
+						i += 1
+						pass
+				else:
+					i += 1
+     
+			if len(expression_list) == 1:
+				final_result = float(expression_list[0])
+
+				if final_result.is_integer():
+					return int(final_result)
+				else:
+					return final_result
+			else:
+				sys.stderr.write("Error: Invalid expression format (did not resolve to single value).\n")
+				return None
+ 
+		except ValueError :	
+			sys.stderr.write("Error: Non-numeric value in expression.\n")
+			return None
+		except ZeroDivisionError :
+			sys.stderr.write("Error: Division by zero.\n")
+			return None
+	
 
 class Tmp :
 	@staticmethod
@@ -77,10 +209,17 @@ class Var :
 		if not (raw_args[1] in CommandList.prep_list):
 			ErrorCode.MISSING_ARGUMENT.print_error(f"var crt: Missing or misplaced mandatory flag '{raw_args[1]}'. Expected 'name -in value'")
 			return None
-		
+
 		var_name = raw_args[0]
 		var_value = raw_args[2].strip('"')
-		
+  
+
+		var_value = PreProcessing._add_space(var_value)
+		var_tokens = var_value.split(" ")
+		var_value = PreProcessing._evaluate_expression(*var_tokens, variables=variables)
+		var_value = PreProcessing._calc(var_value)
+		var_value = str(var_value)
+  
 		variables[var_name] = var_value
 		sys.stdout.write(f"Variable '{var_name}' created.\n")
 	@staticmethod
@@ -105,6 +244,13 @@ class Var :
 			return None
 		
 		var_value = raw_args[2].strip('"')
+		
+		var_value = PreProcessing._add_space(var_value)
+		var_tokens = var_value.split(" ")
+		var_value = PreProcessing._evaluate_expression(*var_tokens, variables=variables)
+		var_value = PreProcessing._calc(var_value)
+		var_value = str(var_value)
+  
 		variables[var_name] = var_value
 		sys.stdout.write(f"Variable '{var_name}' changed.\n")
 	@staticmethod
