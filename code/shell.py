@@ -131,7 +131,7 @@ class Sys :
 class Run:
 	@staticmethod
 	def start():
-		sys.stdout.write("My Shell ver 0.0.1\n")
+		sys.stdout.write("Nautre Shell ver 0.1.4\n")
 		while True :
 			sys.stdout.write("\n>>> ")
 			cmd = sys.stdin.readline().strip()
@@ -144,3 +144,6 @@ class Run:
 			if result == "exit" :
 				sys.stdout.write("Exiting My Shell. Goodbye!\n")
 				break
+
+if __name__ == "__main__" :
+	Run.start()
