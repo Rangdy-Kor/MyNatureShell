@@ -28,8 +28,6 @@ class Command :
 			class_name = "Var"
 		elif noun == "system":
 			class_name = "Sys"
-		else:
-			class_name = noun.capitalize()
 		
 		try :
 			CommandClass = globals()[class_name]
@@ -70,35 +68,45 @@ class Tmp :
 class Var :
 	@staticmethod
 	def _crt(ast, variables) :
-		if len(ast["val"]) < 2:
-			ErrorCode.MISSING_ARGUMENT.print_error("var crt")
+		raw_args = ast.get("raw_args", [])
+
+		if len(raw_args) != 3:
+			ErrorCode.MISSING_ARGUMENT.print_error("var crt: Expected 'name -in value'")
+			return None
+
+		if not (raw_args[1] in CommandList.prep_list):
+			ErrorCode.MISSING_ARGUMENT.print_error(f"var crt: Missing or misplaced mandatory flag '{raw_args[1]}'. Expected 'name -in value'")
 			return None
 		
-		if "-in" in ast["prep"] :
-			var_name = ast["val"][0]
-			var_value = ast["val"][1].strip('"')
-			variables[var_name] = var_value
-			sys.stdout.write(f"Variable '{var_name}' created.\n")
+		var_name = raw_args[0]
+		var_value = raw_args[2].strip('"')
+		
+		variables[var_name] = var_value
+		sys.stdout.write(f"Variable '{var_name}' created.\n")
 	@staticmethod
 	def _create(ast, variables) :
 		Var._crt(ast, variables)
 
 	@staticmethod
 	def _chg(ast, variables) :
-		if len(ast["val"]) < 2:
-			ErrorCode.MISSING_ARGUMENT.print_error("var chg")
+		raw_args = ast.get("raw_args", [])
+		if len(raw_args) != 3:
+			ErrorCode.MISSING_ARGUMENT.print_error("var chg: Expected 'name -in value'")
 			return None
-
-		var_name = ast["val"][0]
 		
+		var_name = raw_args[0]
+
 		if var_name not in variables:
 			ErrorCode.VARIABLE_NOT_FOUND.print_error(var_name)
 			return None
 		
-		if "-in" in ast["prep"] :
-			var_value = ast["val"][1].strip('"')
-			variables[var_name] = var_value
-			sys.stdout.write(f"Variable '{var_name}' changed.\n")
+		if raw_args[1] != "-in":
+			ErrorCode.MISSING_ARGUMENT.print_error("var chg: Missing or misplaced mandatory flag '-in'. Expected 'name -in value'")
+			return None
+		
+		var_value = raw_args[2].strip('"')
+		variables[var_name] = var_value
+		sys.stdout.write(f"Variable '{var_name}' changed.\n")
 	@staticmethod
 	def _change(ast, variables) :
 		Var._chg(ast, variables)

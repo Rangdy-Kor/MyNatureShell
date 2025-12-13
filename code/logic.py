@@ -41,13 +41,16 @@ class Parser:
 			"noun": "", 
 			"verb": "", 
 			"prep": [], 
-			"val": []
+			"val": [],
+			"raw_args": []
 		}
 
 		ast["noun"] = tokens[0]
 
 		if len(tokens) > 1:
 			ast["verb"] = tokens[1]
+
+			ast["raw_args"] = tokens[2:]
 		
 			for token in tokens[2:] :
 				if token in CommandList.prep_list :
