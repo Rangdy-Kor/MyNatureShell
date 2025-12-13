@@ -5,6 +5,7 @@ class ErrorCode(Enum):
 	VARIABLE_NOT_FOUND = ("E001", "Variable '{}' not found")
 	UNKNOWN_COMMAND = ("E002", "Unknown command '{}'")
 	MISSING_ARGUMENT = ("E003", "Missing argument for command '{}'")
+	MISSING_PART_OF_SPEECH = ("E004", "Missing part of speech for command '{}'")
 	
 	def __init__(self, code, message):
 		self.code = code
@@ -17,4 +18,4 @@ class ErrorCode(Enum):
 class CommandList :
 	noun_list = ("tmp", "temp", "sys", "system", "var", "variable")
 	verb_list = ("chg", "change", "crt", "create", "echo", "stop")
-	prep_lsit = ("-in")
+	prep_list = ("-in")

@@ -45,14 +45,18 @@ class Parser:
 		}
 
 		ast["noun"] = tokens[0]
+
+		if len(tokens) > 1:
+			ast["verb"] = tokens[1]
 		
-		ast["verb"] = tokens[1]
-		
-		for token in tokens[2:] :
-			if token.startswith("-") :
-				ast["prep"].append(token)
-			else :
-				ast["val"].append(token)
+			for token in tokens[2:] :
+				if token in CommandList.prep_list :
+					ast["prep"].append(token)
+				else :
+					ast["val"].append(token)
+		else :
+			ErrorCode.MISSING_PART_OF_SPEECH.print_error("verb")
+			return None
 		
 		return ast
 		

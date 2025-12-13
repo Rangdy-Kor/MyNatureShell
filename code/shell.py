@@ -4,7 +4,6 @@ from constants import ErrorCode, CommandList
 
 
 variable = {}
-is_running = True
 
 class Command :
 	@staticmethod
@@ -119,8 +118,7 @@ class Var :
 class Sys :
 	@staticmethod
 	def _stop(ast, variables) :
-		global is_running 
-		is_running = False
+		return "exit"
 
 class Run:
 	@staticmethod
@@ -133,8 +131,8 @@ class Run:
 			tokens = Parser.tokenize(cmd)
 			ast = Parser.parse(tokens)
 
-			Command.execute(ast, variable)
+			result = Command.execute(ast, variable)
 
-			if is_running == False :
+			if result == "exit" :
 				sys.stdout.write("Exiting My Shell. Goodbye!\n")
 				break
