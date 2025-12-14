@@ -4,6 +4,8 @@ from constants import CommandList, ErrorCode
 class Parser:
 	@staticmethod
 	def tokenize(command):
+		if command.strip().startswith(('//','##','cmt')):
+			return []
 		tokens = []
 		current_token = ""
 		in_string = False
@@ -69,7 +71,7 @@ class Parser:
 		if "-if" in tokens:
 			return Condition.parse_condition(tokens, variables)
 		
-		if "-while" in tokens:  # 추가!
+		if "-while" in tokens:
 			return Loop.parse_while(tokens, variables)
 		
 		ast = {
