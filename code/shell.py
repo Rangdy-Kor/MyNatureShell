@@ -62,11 +62,16 @@ class Command:
 class PreProcessing :
 	@staticmethod
 	def _add_space(string) :
+		string = " ".join(string.split())
+		
+		string = string.replace("**", " TMP ")
 		string = string.replace("+", " + ")
 		string = string.replace("-", " - ")
 		string = string.replace("*", " * ")
 		string = string.replace("/", " / ")
-  
+		string = string.replace("%", " % ")
+		string = string.replace(" TMP ", " ** ")
+		
 		string = " ".join(string.split())
 		return string
 
@@ -93,24 +98,46 @@ class PreProcessing :
   
 		i = 0
 		try :
+   
 			if expression_list[0] == "-" :
 				if len(expression_list) > 1 :
 					try:
 						float_val = float(expression_list[1]) 
-						
 						expression_list[0] = str(-float_val)
 						del expression_list[1]
 					except ValueError:
 						pass
+			
+   
+			i = 1
+			while i < len(expression_list) - 1 :
+				op = expression_list[i]
+				if op == "**":
+					try:
+						val1 = float(expression_list[i-1])
+						val2 = float(expression_list[i+1])
+						result = val1 ** val2
+						
+						expression_list[i-1] = str(result)
+						del expression_list[i+1]
+						del expression_list[i]
+      
+					except ValueError:
+						i += 1
+				else:
+					i += 1
+			
+   
+			i = 1
 			while i < len(expression_list) - 1: 
 				op = expression_list[i]
 				
-				if op == "*" or op == "/":
+				if op in ["*", "/", "%"]:
+     
 					if len(expression_list) > i + 3:
 						if expression_list[i+1] == "-" and expression_list[i+2] == "-" :
 							try :
 								float_val = float(expression_list[i+3]) 
-								
 								expression_list[i+1] = str(float_val)
 								del expression_list[i+2]
 								del expression_list[i+2]
@@ -121,36 +148,36 @@ class PreProcessing :
 						if expression_list[i+1] == "-" :
 							try:
 								float_val = float(expression_list[i+2]) 
-								
 								expression_list[i+1] = str(-float_val)
 								del expression_list[i+2]
 							except ValueError:
 								pass
     
 					try :
-			
 						val1 = float(expression_list[i-1])
 						val2 = float(expression_list[i+1])
 						
 						if op == "*":
 							result = val1 * val2
-						else: 
+						elif op == "/": 
 							if val2 == 0:
 								sys.stderr.write("Error: Division by zero.\n")
 								return None
 							result = val1 / val2
-						
-						del expression_list[i+1]
-						del expression_list[i] 
+						elif op == "%":
+							if val2 == 0:
+								sys.stderr.write("Error: Modulo by zero.\n")
+								return None
+							result = val1 % val2
 						
 						expression_list[i-1] = str(result)
+						del expression_list[i+1]
+						del expression_list[i] 
 					except ValueError :
 						i += 1
-						pass
-
 				else:
 					i += 1
-     
+   
 			i = 1
 			while i < len(expression_list) - 1 :
 				op = expression_list[i]
@@ -165,13 +192,11 @@ class PreProcessing :
 						else: 
 							result = val1 - val2
 						
+						expression_list[i-1] = str(result)
 						del expression_list[i+1]
 						del expression_list[i] 
-						
-						expression_list[i-1] = str(result)
 					except ValueError :
 						i += 1
-						pass
 				else:
 					i += 1
      
@@ -219,7 +244,7 @@ class Var :
 	def _crt(ast, variables) :
 		raw_args = ast.get("raw_args", [])
 
-		if len(raw_args) != 3:
+		if len(raw_args) < 3:
 			ErrorCode.MISSING_ARGUMENT.print_error("var crt: Expected 'name -in value'")
 			return None
 
@@ -228,9 +253,9 @@ class Var :
 			return None
 
 		var_name = raw_args[0]
-		var_value = raw_args[2].strip('"')
+		var_value_tokens = raw_args[2:]
+		var_value = " ".join(var_value_tokens).strip('"')
   
-
 		var_value = PreProcessing._add_space(var_value)
 		var_tokens = var_value.split(" ")
 		var_value = PreProcessing._evaluate_expression(*var_tokens, variables=variables)
@@ -239,6 +264,7 @@ class Var :
   
 		variables[var_name] = var_value
 		sys.stdout.write(f"Variable '{var_name}' created.\n")
+	
 	@staticmethod
 	def _create(ast, variables) :
 		Var._crt(ast, variables)
@@ -246,7 +272,7 @@ class Var :
 	@staticmethod
 	def _chg(ast, variables) :
 		raw_args = ast.get("raw_args", [])
-		if len(raw_args) != 3:
+		if len(raw_args) < 3:
 			ErrorCode.MISSING_ARGUMENT.print_error("var chg: Expected 'name -in value'")
 			return None
 		
@@ -260,7 +286,8 @@ class Var :
 			ErrorCode.MISSING_ARGUMENT.print_error("var chg: Missing or misplaced mandatory flag '-in'. Expected 'name -in value'")
 			return None
 		
-		var_value = raw_args[2].strip('"')
+		var_value_tokens = raw_args[2:]
+		var_value = " ".join(var_value_tokens).strip('"')
 		
 		var_value = PreProcessing._add_space(var_value)
 		var_tokens = var_value.split(" ")
@@ -270,6 +297,7 @@ class Var :
   
 		variables[var_name] = var_value
 		sys.stdout.write(f"Variable '{var_name}' changed.\n")
+	
 	@staticmethod
 	def _change(ast, variables) :
 		Var._chg(ast, variables)
