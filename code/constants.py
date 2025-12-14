@@ -17,5 +17,6 @@ class ErrorCode(Enum):
 
 class CommandList :
 	noun_list = ("tmp", "temp", "sys", "system", "var", "variable")
+	adj_list = ("int", "str", "float", "bool", "list")
 	verb_list = ("chg", "change", "crt", "create", "echo", "stop")
 	prep_list = ("-in",)

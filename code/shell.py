@@ -58,7 +58,7 @@ class Command:
 		except Exception as e:
 			sys.stderr.write(f"Runtime Error during execution: {e}\n")
 			return None
-    
+	
 class PreProcessing :
 	@staticmethod
 	def _add_space(string) :
@@ -121,7 +121,7 @@ class PreProcessing :
 						expression_list[i-1] = str(result)
 						del expression_list[i+1]
 						del expression_list[i]
-      
+	  
 					except ValueError:
 						i += 1
 				else:
@@ -133,7 +133,7 @@ class PreProcessing :
 				op = expression_list[i]
 				
 				if op in ["*", "/", "%"]:
-     
+	 
 					if len(expression_list) > i + 3:
 						if expression_list[i+1] == "-" and expression_list[i+2] == "-" :
 							try :
@@ -152,7 +152,7 @@ class PreProcessing :
 								del expression_list[i+2]
 							except ValueError:
 								pass
-    
+	
 					try :
 						val1 = float(expression_list[i-1])
 						val2 = float(expression_list[i+1])
@@ -199,7 +199,7 @@ class PreProcessing :
 						i += 1
 				else:
 					i += 1
-     
+	 
 			if len(expression_list) == 1:
 				final_result = float(expression_list[0])
 
@@ -241,27 +241,36 @@ class Tmp :
 
 class Var :
 	@staticmethod
-	def _crt(ast, variables) :
+	def _crt(ast, variables):
 		raw_args = ast.get("raw_args", [])
-
+		
 		if len(raw_args) < 3:
-			ErrorCode.MISSING_ARGUMENT.print_error("var crt: Expected 'name -in value'")
+			ErrorCode.MISSING_ARGUMENT.print_error("var crt")
 			return None
-
-		if not (raw_args[1] in CommandList.prep_list):
-			ErrorCode.MISSING_ARGUMENT.print_error(f"var crt: Missing or misplaced mandatory flag '{raw_args[1]}'. Expected 'name -in value'")
-			return None
-
+		
 		var_name = raw_args[0]
 		var_value_tokens = raw_args[2:]
 		var_value = " ".join(var_value_tokens).strip('"')
-  
-		var_value = PreProcessing._add_space(var_value)
-		var_tokens = var_value.split(" ")
-		var_value = PreProcessing._evaluate_expression(*var_tokens, variables=variables)
-		var_value = PreProcessing._calc(var_value)
-		var_value = str(var_value)
-  
+	
+		adjectives = ast.get("adjectives", [])
+		if adjectives:
+			var_type = adjectives[0]
+			
+			if var_type == "int":
+				try:
+					var_value = str(int(float(var_value)))
+				except ValueError:
+					sys.stderr.write(f"Error: Cannot convert '{var_value}' to int\n")
+					return None
+			elif var_type == "float":
+				try:
+					var_value = str(float(var_value))
+				except ValueError:
+					sys.stderr.write(f"Error: Cannot convert '{var_value}' to float\n")
+					return None
+			elif var_type == "str":
+				var_value = str(var_value)
+		
 		variables[var_name] = var_value
 		sys.stdout.write(f"Variable '{var_name}' created.\n")
 	

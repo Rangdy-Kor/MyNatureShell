@@ -1,3 +1,4 @@
+import sys
 from constants import CommandList, ErrorCode
 
 class Parser:
@@ -7,26 +8,35 @@ class Parser:
 		current_token = ""
 		in_string = False
 		i = 0
-  
+		
 		operators = ['<', '>', '=', '!', '{', '}']
-  
+		
 		while i < len(command):
 			char = command[i]
+			
 			if char == '"':
-				in_string = not in_string
-				current_token += char
-				i += 1
-				continue
-			elif in_string:
-				current_token += char
-				i += 1
-				continue
-
-			elif char in operators:
-				if current_token != "":
+				if in_string:
+					tokens.append(current_token)
+					current_token = ""
+					in_string = False
+				else:
+					if current_token:
 						tokens.append(current_token)
 						current_token = ""
-	  
+					in_string = True
+				i += 1
+				continue
+			
+			if in_string:
+				current_token += char
+				i += 1
+				continue
+			
+			if char in operators:
+				if current_token:
+					tokens.append(current_token)
+					current_token = ""
+				
 				if i + 1 < len(command) and command[i+1] == '=':
 					tokens.append(char + '=')
 					i += 2
@@ -35,36 +45,51 @@ class Parser:
 				tokens.append(char)
 				i += 1
 				continue
-			elif char == " ":
-				if current_token != "":
+			
+			if char == " ":
+				if current_token:
 					tokens.append(current_token)
 					current_token = ""
 				i += 1
 				continue
-			else:
-				current_token += char
-				i += 1
-				continue
-		if current_token != "":
+			
+			current_token += char
+			i += 1
+		
+		if current_token:
 			tokens.append(current_token)
+		
 		return tokens
 
 	@staticmethod
 	def parse(tokens, variables):
 		if not tokens:
 			return None
-
-		if "-if" in tokens :
+		
+		if "-if" in tokens:
 			return Condition.parse_condition(tokens, variables)
+		
+		if "-while" in tokens:  # 추가!
+			return Loop.parse_while(tokens, variables)
+		
 		ast = {
-			"noun": "", 
-			"verb": "", 
-			"prep": [], 
+			"noun": "",
+			"adjectives": [],
+			"verb": "",
+			"prep": [],
 			"val": [],
 			"raw_args": []
 		}
+		
+		first_token = tokens[0]
+		if ':' in first_token:
+			parts = first_token.split(':')
+			ast["noun"] = parts[0]
+			ast["adjectives"] = parts[1:]
+		else:
+			ast["noun"] = first_token
 
-		ast["noun"] = tokens[0]
+			ast["noun"] = tokens[0]
 
 		if len(tokens) > 1:
 			ast["verb"] = tokens[1]
@@ -89,7 +114,43 @@ class Parser:
 			return True
 		except ValueError:
 			return False
-		
+
+class Loop:
+    @staticmethod
+    def parse_while(tokens, variables):
+        while_index = tokens.index("-while")
+        condition_tokens = tokens[:while_index]
+        block_tokens = tokens[while_index + 1:]
+        
+        return {
+            "type": "while",
+            "condition": condition_tokens,
+            "block": block_tokens
+        }
+    
+    @staticmethod
+    def execute_while(ast, variables, execute_func):
+        max_iterations = 1000
+        iterations = 0
+        
+        while iterations < max_iterations:
+            result = Condition.evaluate_condition(
+                ast["condition"], 
+                variables
+            )
+            
+            if not result:
+                break
+            
+            block = ast["block"]
+            clean_block = block[1:-1]
+            block_ast = Parser.parse(clean_block, variables)
+            execute_func(block_ast, variables)
+            
+            iterations += 1
+        
+        if iterations >= max_iterations:
+            sys.stderr.write("Warning: Loop exceeded maximum iterations\n")
 
 class Condition :
 	@staticmethod
