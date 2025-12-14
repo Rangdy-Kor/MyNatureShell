@@ -13,11 +13,18 @@ class Command:
 
 		if ast.get("type") == "condition":
 			result = Condition.evaluate_condition(ast["condition"], variables)
-			if result :
-				block_tokens = ast["block"]
-				clean_block = block_tokens[1:-1]
-				block_ast = Parser.parse(clean_block)
+			
+			if result:
+				if_block = ast["if_block"]
+				clean_block = if_block[1:-1]
+				block_ast = Parser.parse(clean_block, variables)
 				Command.execute(block_ast, variables)
+			else:
+				if ast.get("else_block"):
+					else_block = ast["else_block"]
+					clean_block = else_block[1:-1]
+					block_ast = Parser.parse(clean_block, variables)
+					Command.execute(block_ast, variables)
 			return
 
 		noun = ast["noun"]
@@ -288,11 +295,12 @@ class Run:
 	@staticmethod
 	def start():
 		while True :
+			global variable
 			sys.stdout.write("\n>>> ")
 			cmd = sys.stdin.readline().strip()
 
 			tokens = Parser.tokenize(cmd)
-			ast = Parser.parse(tokens)
+			ast = Parser.parse(tokens, variable)
 
 			result = Command.execute(ast, variable)
 
