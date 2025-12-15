@@ -26,6 +26,11 @@ class Command:
 					block_ast = Parser.parse(clean_block, variables)
 					Command.execute(block_ast, variables)
 			return
+		
+		elif ast.get("type") == "while":
+			from logic import Loop
+			Loop.execute_while(ast, variables, Command.execute)
+			return
 
 		noun = ast["noun"]
 		verb = ast["verb"]
@@ -344,6 +349,30 @@ class Run:
 			if result == "exit" :
 				sys.stdout.write("Exiting My Shell. Goodbye!\n")
 				break
+
+	@staticmethod
+	def run_file(filename):
+		try:
+			with open(filename, 'r', encoding='utf-8') as f:
+				lines = f.readlines()
+			
+			for line in lines:
+				line = line.strip()
+				
+				if not line or line.startswith(('//', '##', 'cmt')):
+					continue
+				
+				tokens = Parser.tokenize(line)
+				ast = Parser.parse(tokens, variable)
+				result = Command.execute(ast, variable)
+				
+				if result == "exit":
+					break
+		
+		except FileNotFoundError:
+			sys.stderr.write(f"Error: File '{filename}' not found\n")
+		except Exception as e:
+			sys.stderr.write(f"Error: {e}\n")
 
 if __name__ == "__main__" :
 	Run.start()

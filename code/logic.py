@@ -89,8 +89,6 @@ class Parser:
 			ast["noun"] = parts[0]
 			ast["adjectives"] = parts[1:]
 		else:
-			ast["noun"] = first_token
-
 			ast["noun"] = tokens[0]
 
 		if len(tokens) > 1:

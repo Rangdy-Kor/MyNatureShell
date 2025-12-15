@@ -1,5 +1,9 @@
 import sys
 from shell import Run
 
-sys.stdout.write("Nautre Shell ver 0.1.8.02\n")
-Run.start()
+if len(sys.argv) > 1:
+	filename = sys.argv[1]
+	Run.run_file(filename)
+else:
+	sys.stdout.write("Nature Shell ver 0.1.9.00\n")
+	Run.start()
