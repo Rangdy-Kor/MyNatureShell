@@ -1,0 +1,6 @@
+var:int crt i -in 1
+
+$i < 5 -while {
+    tmp echo $i
+    var chg i -in $i+1
+}

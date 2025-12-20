@@ -1,5 +1,5 @@
 import sys
-from logic import Parser, Condition
+from logic import Parser, Condition, Loop
 from constants import ErrorCode, CommandList
 
 
@@ -7,31 +7,39 @@ variable = {}
 
 class Command: 
 	@staticmethod
-	def execute(ast, variables) :
+	def execute(ast, variables):
 		if ast is None:
 			return
 
+		# 조건문 처리
 		if ast.get("type") == "condition":
 			result = Condition.evaluate_condition(ast["condition"], variables)
 			
 			if result:
 				if_block = ast["if_block"]
-				clean_block = if_block[1:-1]
-				block_ast = Parser.parse(clean_block, variables)
-				Command.execute(block_ast, variables)
+				block_str = " ".join(str(t) for t in if_block)
+				parsed = Parser.parse_command(block_str)
+				if parsed:
+					block_ast = Parser.to_ast(parsed, variables)
+					if block_ast:
+						Command.execute(block_ast, variables)
 			else:
 				if ast.get("else_block"):
 					else_block = ast["else_block"]
-					clean_block = else_block[1:-1]
-					block_ast = Parser.parse(clean_block, variables)
-					Command.execute(block_ast, variables)
+					block_str = " ".join(str(t) for t in else_block)
+					parsed = Parser.parse_command(block_str)
+					if parsed:
+						block_ast = Parser.to_ast(parsed, variables)
+						if block_ast:
+							Command.execute(block_ast, variables)
 			return
 		
+		# while 문 처리
 		elif ast.get("type") == "while":
-			from logic import Loop
 			Loop.execute_while(ast, variables, Command.execute)
 			return
 
+		# 일반 명령어 처리
 		noun = ast["noun"]
 		verb = ast["verb"]
 
@@ -49,7 +57,7 @@ class Command:
 		elif noun == "system":
 			class_name = "Sys"
 		
-		try :
+		try:
 			CommandClass = globals()[class_name]
 			CommandMethod = getattr(CommandClass, method_name)
 			result = CommandMethod(ast, variables) 
@@ -64,9 +72,10 @@ class Command:
 			sys.stderr.write(f"Runtime Error during execution: {e}\n")
 			return None
 	
-class PreProcessing :
+
+class PreProcessing:
 	@staticmethod
-	def _add_space(string) :
+	def _add_space(string):
 		string = " ".join(string.split())
 		
 		string = string.replace("**", " TMP ")
@@ -81,7 +90,7 @@ class PreProcessing :
 		return string
 
 	@staticmethod
-	def _evaluate_expression(*values, variables) :
+	def _evaluate_expression(*values, variables):
 		evaluated = []
 		for val in values:
 			if val.startswith("$"):
@@ -97,15 +106,15 @@ class PreProcessing :
 		return expression_string
 
 	@staticmethod
-	def _calc (expression) :
+	def _calc(expression):
 		expression_list = expression.split(" ")
 		result = None
   
 		i = 0
-		try :
-   
-			if expression_list[0] == "-" :
-				if len(expression_list) > 1 :
+		try:
+			# 음수 처리
+			if expression_list[0] == "-":
+				if len(expression_list) > 1:
 					try:
 						float_val = float(expression_list[1]) 
 						expression_list[0] = str(-float_val)
@@ -113,9 +122,9 @@ class PreProcessing :
 					except ValueError:
 						pass
 			
-   
+			# 거듭제곱 처리
 			i = 1
-			while i < len(expression_list) - 1 :
+			while i < len(expression_list) - 1:
 				op = expression_list[i]
 				if op == "**":
 					try:
@@ -126,22 +135,21 @@ class PreProcessing :
 						expression_list[i-1] = str(result)
 						del expression_list[i+1]
 						del expression_list[i]
-	  
 					except ValueError:
 						i += 1
 				else:
 					i += 1
 			
-   
+			# 곱셈, 나눗셈, 나머지 처리
 			i = 1
 			while i < len(expression_list) - 1: 
 				op = expression_list[i]
 				
 				if op in ["*", "/", "%"]:
-	 
+					# 음수 처리
 					if len(expression_list) > i + 3:
-						if expression_list[i+1] == "-" and expression_list[i+2] == "-" :
-							try :
+						if expression_list[i+1] == "-" and expression_list[i+2] == "-":
+							try:
 								float_val = float(expression_list[i+3]) 
 								expression_list[i+1] = str(float_val)
 								del expression_list[i+2]
@@ -149,8 +157,8 @@ class PreProcessing :
 							except ValueError:
 								pass
 						
-					if len(expression_list) > i + 2 :
-						if expression_list[i+1] == "-" :
+					if len(expression_list) > i + 2:
+						if expression_list[i+1] == "-":
 							try:
 								float_val = float(expression_list[i+2]) 
 								expression_list[i+1] = str(-float_val)
@@ -158,7 +166,7 @@ class PreProcessing :
 							except ValueError:
 								pass
 	
-					try :
+					try:
 						val1 = float(expression_list[i-1])
 						val2 = float(expression_list[i+1])
 						
@@ -178,17 +186,18 @@ class PreProcessing :
 						expression_list[i-1] = str(result)
 						del expression_list[i+1]
 						del expression_list[i] 
-					except ValueError :
+					except ValueError:
 						i += 1
 				else:
 					i += 1
    
+			# 덧셈, 뺄셈 처리
 			i = 1
-			while i < len(expression_list) - 1 :
+			while i < len(expression_list) - 1:
 				op = expression_list[i]
 				
 				if op == "+" or op == "-":
-					try :
+					try:
 						val1 = float(expression_list[i-1])
 						val2 = float(expression_list[i+1])
 						
@@ -200,7 +209,7 @@ class PreProcessing :
 						expression_list[i-1] = str(result)
 						del expression_list[i+1]
 						del expression_list[i] 
-					except ValueError :
+					except ValueError:
 						i += 1
 				else:
 					i += 1
@@ -216,27 +225,30 @@ class PreProcessing :
 				sys.stderr.write("Error: Invalid expression format (did not resolve to single value).\n")
 				return None
  
-		except ValueError :	
+		except ValueError:	
 			sys.stderr.write("Error: Non-numeric value in expression.\n")
 			return None
-		except ZeroDivisionError :
+		except ZeroDivisionError:
 			sys.stderr.write("Error: Division by zero.\n")
 			return None
-	
 
-class Tmp :
+
+class Tmp:
 	@staticmethod
-	def _echo(ast, variables) :
+	def _echo(ast, variables):
 		output = []
 		for word in ast["val"]:
-			if word.startswith("$"):
+			# 변수 참조 처리
+			if word in variables:
+				output.append(str(variables[word]))
+			elif word.startswith("$"):
 				var_name = word[1:]
 				if var_name in variables:
-					output.append(variables[var_name])
+					output.append(str(variables[var_name]))
 				else:
 					output.append(word)
 			else:
-				output.append(word)
+				output.append(str(word))
 
 		result = " ".join(output)
 		if result.startswith('"') and result.endswith('"'):
@@ -244,7 +256,8 @@ class Tmp :
 
 		sys.stdout.write(result + "\n")
 
-class Var :
+
+class Var:
 	@staticmethod
 	def _crt(ast, variables):
 		raw_args = ast.get("raw_args", [])
@@ -255,7 +268,7 @@ class Var :
 		
 		var_name = raw_args[0]
 		var_value_tokens = raw_args[2:]
-		var_value = " ".join(var_value_tokens).strip('"')
+		var_value = " ".join(str(v) for v in var_value_tokens).strip('"')
 	
 		adjectives = ast.get("adjectives", [])
 		if adjectives:
@@ -280,11 +293,11 @@ class Var :
 		sys.stdout.write(f"Variable '{var_name}' created.\n")
 	
 	@staticmethod
-	def _create(ast, variables) :
+	def _create(ast, variables):
 		Var._crt(ast, variables)
 
 	@staticmethod
-	def _chg(ast, variables) :
+	def _chg(ast, variables):
 		raw_args = ast.get("raw_args", [])
 		if len(raw_args) < 3:
 			ErrorCode.MISSING_ARGUMENT.print_error("var chg: Expected 'name -in value'")
@@ -301,7 +314,7 @@ class Var :
 			return None
 		
 		var_value_tokens = raw_args[2:]
-		var_value = " ".join(var_value_tokens).strip('"')
+		var_value = " ".join(str(v) for v in var_value_tokens).strip('"')
 		
 		var_value = PreProcessing._add_space(var_value)
 		var_tokens = var_value.split(" ")
@@ -313,40 +326,43 @@ class Var :
 		sys.stdout.write(f"Variable '{var_name}' changed.\n")
 	
 	@staticmethod
-	def _change(ast, variables) :
+	def _change(ast, variables):
 		Var._chg(ast, variables)
 
 	@staticmethod
-	def _get(ast, variables) :
+	def _get(ast, variables):
 		if len(ast["val"]) < 1:
 			ErrorCode.MISSING_ARGUMENT.print_error("var get")
 			return None
 		
 		var_name = ast["val"][0]
 		if var_name in variables:
-			sys.stdout.write(variables[var_name] + "\n")
+			sys.stdout.write(str(variables[var_name]) + "\n")
 		else:
 			ErrorCode.VARIABLE_NOT_FOUND.print_error(var_name)
 
-class Sys :
+
+class Sys:
 	@staticmethod
-	def _stop(ast, variables) :
+	def _stop(ast, variables):
 		return "exit"
+
 
 class Run:
 	@staticmethod
 	def start():
-		while True :
+		while True:
 			global variable
 			sys.stdout.write("\n>>> ")
 			cmd = sys.stdin.readline().strip()
 
-			tokens = Parser.tokenize(cmd)
-			ast = Parser.parse(tokens, variable)
+			# pyparsing으로 파싱
+			parsed = Parser.parse_command(cmd)
+			ast = Parser.to_ast(parsed, variable)
 
 			result = Command.execute(ast, variable)
 
-			if result == "exit" :
+			if result == "exit":
 				sys.stdout.write("Exiting My Shell. Goodbye!\n")
 				break
 
@@ -362,8 +378,9 @@ class Run:
 				if not line or line.startswith(('//', '##', 'cmt')):
 					continue
 				
-				tokens = Parser.tokenize(line)
-				ast = Parser.parse(tokens, variable)
+				# pyparsing으로 파싱
+				parsed = Parser.parse_command(line)
+				ast = Parser.to_ast(parsed, variable)
 				result = Command.execute(ast, variable)
 				
 				if result == "exit":
@@ -374,5 +391,6 @@ class Run:
 		except Exception as e:
 			sys.stderr.write(f"Error: {e}\n")
 
-if __name__ == "__main__" :
+
+if __name__ == "__main__":
 	Run.start()
