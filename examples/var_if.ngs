@@ -1,0 +1,3 @@
+var crt x -in 10
+var crt y -in 15
+$y > $x -if { tmp echo Y is greater than X } -else { tmp echo X is greater than Y }
